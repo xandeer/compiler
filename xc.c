@@ -21,7 +21,7 @@ int *idmain;                  // the 'main' function
 // instructions
 enum {
   LEA, IMM, JMP, CALL, JZ, JNZ, ENT, ADJ, LEV, LI, LC, SI, SC, PUSH,
-  OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD,
+  OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SAL, SAR, ADD, SUB, MUL, DIV, MOD,
   OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, EXIT
 };
 
@@ -286,6 +286,67 @@ void next() {
   return;
 }
 
+void match(int tk) {
+  if (token != tk) {
+    printf("%d: expected token: %d\n", line, tk);
+    exit(-1);
+  }
+  next();
+}
+
+int expr();
+
+int factor() {
+  int value = 0;
+  if (token == '(') {
+    match('(');
+    value = expr();
+    match(')');
+  } else {
+    value = token_val;
+    match(Num);
+  }
+  return value;
+}
+
+int term_tail(int lvalue) {
+  if (token == '*') {
+    match('*');
+    int value = lvalue * factor();
+    return term_tail(value);
+  } else if (token == '/') {
+    match('/');
+    int value = lvalue / factor();
+    return term_tail(value);
+  } else {
+    return lvalue;
+  }
+}
+
+int term() {
+  int lvalue = factor();
+  return term_tail(lvalue);
+}
+
+int expr_tail(int lvalue) {
+  if (token == '+') {
+    match('+');
+    int value = lvalue + term();
+    return expr_tail(value);
+  } else if (token == '-') {
+    match('-');
+    int value = lvalue - term();
+    return expr_tail(value);
+  } else {
+    return lvalue;
+  }
+}
+
+int expr() {
+  int lvalue = term();
+  return expr_tail(lvalue);
+}
+
 // analyse an expression
 void expression(int level) {
   // do nothing
@@ -328,8 +389,8 @@ int eval() {
     else if (op == LE)    ax = *sp++ <= ax;
     else if (op == GT)    ax = *sp++ > ax;
     else if (op == GE)    ax = *sp++ >= ax;
-    else if (op == SHL)   ax = *sp++ << ax;
-    else if (op == SHR)   ax = *sp++ >> ax;
+    else if (op == SAL)   ax = *sp++ << ax;
+    else if (op == SAR)   ax = *sp++ >> ax;
     else if (op == ADD)   ax = *sp++ + ax;
     else if (op == SUB)   ax = *sp++ - ax;
     else if (op == MUL)   ax = *sp++ * ax;
